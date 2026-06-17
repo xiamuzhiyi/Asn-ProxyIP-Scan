@@ -54,3 +54,6 @@ CSV 列：IP地址, 端口, TLS, 数据中心, 地区, 城市, 网络延迟, 下
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xiamuzhiyi/Asn-ProxyIP-Scan&type=timeline&logscale&legend=bottom-right" />
  </picture>
 </a>
+
+## 特别鸣谢
+EzXxY https://github.com/EzXxY/CF-IP 
