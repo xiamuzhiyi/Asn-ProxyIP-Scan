@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asn ProxyIP Scan工具</title>
+<link rel="icon" sizes="56x56" href="https://raw.githubusercontent.com/xiagefei/CFBestIP/refs/heads/main/tux.png">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #131721;
+    --bg3: #1a1f2e;
+    --border: #252b3a;
+    --text: #bfc7d5;
+    --text2: #6c7394;
+    --accent: #4fc3f7;
+    --green: #7ec87b;
+    --orange: #ffb74d;
+    --red: #f07178;
+    --purple: #c792ea;
+    --cyan: #89ddff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    color: #fff;
+  }
+  .header h1 { font-size: 18px; color: #e0e6f0; font-weight: 600; }
+  .header .ver { font-size: 11px; color: var(--text2); }
+  .header .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
+  }
+  .header .status-dot.idle { background: var(--text2); }
+  .header .status-dot.running { background: var(--green); animation: pulse 1.5s infinite; }
+  .header .status-dot.done { background: var(--accent); }
+  .header .status-dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Main Layout ── */
+  .main-container {
+    max-width: 1400px; margin: 0 auto; padding: 20px 24px;
+    display: grid; gap: 20px;
+    grid-template-columns: 1fr;
+  }
+  @media(min-width:1024px) {
+    .main-container { grid-template-columns: 380px 1fr; }
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before {
+    content: ''; width: 4px; height: 16px; background: var(--accent); border-radius: 2px;
+  }
+
+  /* ── Input ── */
+  .input-group {
+    display: flex; gap: 8px;
+  }
+  .input-group input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: inherit; font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .input-group input:focus { border-color: var(--accent); }
+  .input-group input::placeholder { color: var(--text2); }
+
+  .btn {
+    background: linear-gradient(135deg, var(--accent), #29b6f6);
+    color: #0a0e14;
+    border: none; border-radius: 6px;
+    padding: 10px 20px;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,195,247,.3); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-stop {
+    background: linear-gradient(135deg, var(--red), #e53935);
+    color: #fff;
+  }
+  .btn-stop:hover { box-shadow: 0 4px 16px rgba(240,113,120,.3); }
+
+  .btn-download {
+    background: var(--bg3);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  /* ── Advanced Options ── */
+  .advanced-toggle {
+    color: var(--accent); font-size: 12px; cursor: pointer;
+    margin-top: 12px; user-select: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .advanced-toggle:hover { color: var(--cyan); }
+  .advanced-panel {
+    display: none; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .advanced-panel.show { display: block; }
+  .advanced-panel label {
+    font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .advanced-panel input, .advanced-panel textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: inherit; font-size: 12px;
+    outline: none;
+    margin-bottom: 10px;
+    resize: vertical;
+  }
+  .advanced-panel input:focus, .advanced-panel textarea:focus { border-color: var(--accent); }
+  .advanced-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+
+  /* ── System Info ── */
+  .sys-info {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;
+  }
+  .sys-info .item {
+    background: var(--bg3); border-radius: 6px; padding: 10px 12px;
+  }
+  .sys-info .item .label { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+  .sys-info .item .value { font-size: 14px; color: var(--accent); font-weight: 600; margin-top: 2px; }
+
+  /* ── Progress Steps ── */
+  .steps { margin-top: 20px; }
+  .step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 6px;
+    margin-bottom: 6px;
+    background: var(--bg3);
+    transition: all .3s;
+  }
+  .step.active { background: rgba(79,195,247,.08); border-left: 3px solid var(--accent); }
+  .step.done { border-left: 3px solid var(--green); }
+  .step .step-number {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    background: var(--border); color: var(--text2);
+  }
+  .step.active .step-number { background: var(--accent); color: #0a0e14; }
+  .step.done .step-number { background: var(--green); color: #0a0e14; }
+  .step .step-label { font-size: 12px; flex: 1; }
+  .step .step-stat { font-size: 11px; color: var(--text2); }
+
+  /* ── Progress Bar ── */
+  .progress-bar-wrap {
+    height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 12px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 2px; transition: width .3s ease;
+    width: 0%;
+  }
+
+  /* ── Log Area ── */
+  .log-area {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    height: 280px; overflow-y: auto;
+    padding: 12px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .log-area .log-line {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,.02);
+    display: flex; gap: 10px;
+  }
+  .log-line .log-step {
+    color: var(--accent); flex-shrink: 0; min-width: 36px; font-weight: 600;
+  }
+  .log-line .log-msg { color: var(--text); word-break: break-all; }
+
+  /* ── Results Table ── */
+  .table-wrap {
+    max-height: 500px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  .results-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px;
+  }
+  .results-table th {
+    background: var(--bg3);
+    padding: 10px 12px;
+    text-align: left; font-weight: 600;
+    color: var(--text2);
+    position: sticky; top: 0; z-index: 1;
+    border-bottom: 2px solid var(--border);
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .results-table th:hover { color: var(--accent); }
+  .results-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    color: var(--text);
+  }
+  .results-table tr:hover td { background: rgba(79,195,247,.04); }
+  .results-table .ip-cell { color: var(--cyan); font-weight: 500; }
+  .results-table .colo-cell { color: var(--purple); }
+  .results-table .country-cell { color: var(--orange); }
+  .count-badge {
+    background: rgba(79,195,247,.15); color: var(--accent);
+    padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text2);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ── Filter ── */
+  .filter-bar {
+    display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .filter-bar input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text);
+    font-family: inherit; font-size: 12px;
+    outline: none; width: 200px;
+  }
+  .filter-bar input:focus { border-color: var(--accent); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; top: 20px; right: 20px;
+    background: var(--bg3); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 12px 20px;
+    color: var(--text); font-size: 13px;
+    z-index: 9999; animation: slideIn .3s ease;
+    max-width: 400px;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <h1>Asn ProxyIP Scan</h1>
+      <span class="ver">by Geoff_Xia</span>
+    </div>
+  </div>
+  <div>
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText" style="font-size:13px;">就绪</span>
+  </div>
+</div>
+
+<div class="main-container">
+  <!-- Left Panel -->
+  <div>
+    <!-- Input Card -->
+    <div class="card">
+      <div class="card-title">扫描配置</div>
+      <div class="input-group">
+        <input type="text" id="asnInput" placeholder="ASN 编号, 例如: AS209242 或 AS209242,AS3214" />
+        <button class="btn" id="btnStart" onclick="startScan()">▶ 开始扫描</button>
+      </div>
+      <div class="input-group" style="margin-top:8px;">
+        <button class="btn btn-stop" id="btnStop" onclick="stopScan()" disabled>⏹ 停止</button>
+      </div>
+
+      <div class="sys-info">
+        <div class="item"><span class="label">CPU</span><span class="value" id="sysCpu">--</span></div>
+        <div class="item"><span class="label">内存</span><span class="value" id="sysRam">--</span></div>
+        <div class="item"><span class="label">默认速率</span><span class="value" id="sysRate">--</span></div>
+        <div class="item"><span class="label">默认并发</span><span class="value" id="sysConc">--</span></div>
+      </div>
+
+      <!-- 高级选项 -->
+      <div class="advanced-toggle" onclick="toggleAdvanced()">
+        <span id="advArrow">▶</span> 高级选项（自定义端口 / 速率 / 线程）
+      </div>
+      <div class="advanced-panel" id="advPanel">
+        <label>扫描端口（支持范围 如 80,443,1000-50000）</label>
+        <textarea id="advPorts" rows="2" placeholder="80,443,1000-50000"></textarea>
+        <div class="advanced-row">
+          <div>
+            <label>Masscan 速率 (pps)</label>
+            <input type="number" id="advRate" placeholder="自动" />
+          </div>
+          <div>
+            <label>CF 扫描并发数</label>
+            <input type="number" id="advCfConc" placeholder="自动" />
+          </div>
+        </div>
+        <div class="advanced-row">
+          <div>
+            <label>API 验证并发数</label>
+            <input type="number" id="advApiConc" placeholder="自动" />
+          </div>
+          <div>
+            <label>API 分片大小</label>
+            <input type="number" id="advApiChunk" placeholder="自动" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="card">
+      <div class="card-title">扫描进度</div>
+      <div class="steps" id="stepsContainer">
+        <div class="step" id="step1"><span class="step-number">1</span><span class="step-label">ASN → CIDR</span><span class="step-stat">等待中</span></div>
+        <div class="step" id="step2"><span class="step-number">2</span><span class="step-label">CIDR → IP 展开</span><span class="step-stat">等待中</span></div>
+        <div class="step" id="step3"><span class="step-number">3</span><span class="step-label">Masscan 端口扫描</span><span class="step-stat">等待中</span></div>
+        <div class="step" id="step4"><span class="step-number">4</span><span class="step-label">CF-Scanner 检测</span><span class="step-stat">等待中</span></div>
+        <div class="step" id="step5"><span class="step-number">5</span><span class="step-label">API 精筛验证</span><span class="step-stat">等待中</span></div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <!-- Log Card -->
+    <div class="card">
+      <div class="card-title">实时日志</div>
+      <div class="log-area" id="logArea">
+        <div class="log-line"><span class="log-step">🖥</span><span class="log-msg">等待输入 ASN 开始扫描...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Results -->
+  <div>
+    <div class="card" style="display:flex;flex-direction:column;">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>扫描结果</span>
+        <span class="count-badge" id="resultCount">0 条</span>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="filterInput" placeholder="🔍 筛选 IP / 地区 / 数据中心..." oninput="applyFilter()" />
+        <button class="btn btn-download" id="btnDownloadIps" onclick="downloadIPs()" disabled>📥 IP列表</button>
+        <button class="btn btn-download" id="btnDownloadMasscan" onclick="downloadMasscan()" disabled>📥 Masscan</button>
+        <button class="btn btn-download" id="btnDownload" onclick="downloadCSV()" disabled>📥 CSV</button>
+      </div>
+
+      <div class="table-wrap" id="tableWrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>IP 地址</th>
+              <th>端口</th>
+              <th>TLS</th>
+              <th>数据中心</th>
+              <th>国家/地区</th>
+              <th>城市</th>
+              <th>延迟</th>
+              <th>速度</th>
+              <th>ASN</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr><td colspan="9"><div class="empty-state"><div class="icon">📡</div>暂无扫描结果</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+let currentAsnTag = '';
+
+// ── Helpers ──
+function $(id) { return document.getElementById(id); }
+function addLog(step, msg) {
+  const area = $('logArea');
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-step">${step}</span><span class="log-msg">${msg}</span>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  // Keep max 500 lines
+  while (area.children.length > 500) area.removeChild(area.firstChild);
+}
+
+function setStatus(status, text) {
+  const dot = $('statusDot');
+  dot.className = 'status-dot ' + status;
+  $('statusText').textContent = text || status;
+}
+
+function updateStep(stepNum, status, stat) {
+  const el = $('step' + stepNum);
+  el.classList.remove('active', 'done');
+  if (status === 'active') el.classList.add('active');
+  if (status === 'done') el.classList.add('done');
+  if (stat) el.querySelector('.step-stat').textContent = stat;
+}
+
+function resetUI() {
+  for (let i = 1; i <= 5; i++) {
+    const el = $('step' + i);
+    el.classList.remove('active', 'done');
+    el.querySelector('.step-stat').textContent = '等待中';
+  }
+  $('progressBar').style.width = '0%';
+  $('logArea').innerHTML = '';
+  addLog('🖥', '准备开始新的扫描任务...');
+  $('resultsBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📡</div>暂无扫描结果</div></td></tr>';
+  $('resultCount').textContent = '0 条';
+  $('btnDownload').disabled = true;
+  $('btnDownloadIps').disabled = true;
+  $('btnDownloadMasscan').disabled = true;
+  currentAsnTag = '';
+}
+
+// ── Advanced toggle ──
+function toggleAdvanced() {
+  const panel = $('advPanel');
+  const arrow = $('advArrow');
+  panel.classList.toggle('show');
+  arrow.textContent = panel.classList.contains('show') ? '▼' : '▶';
+}
+
+// ── Socket Events ──
+socket.on('connect', () => {
+  addLog('🔌', '已连接到服务器');
+  fetch('/api/status').then(r => r.json()).then(data => {
+    $('sysCpu').textContent = data.cpu + '核';
+    $('sysRam').textContent = data.ram + 'MB';
+    const cfg = data.default_config || {};
+    $('sysRate').textContent = (cfg.masscan_rate || '--') + 'pps';
+    $('sysConc').textContent = (cfg.cf_concurrency || '--') + 'c';
+    // 填充高级选项默认值
+    if (cfg.ports) $('advPorts').placeholder = cfg.ports;
+    if (cfg.masscan_rate) $('advRate').placeholder = cfg.masscan_rate;
+    if (cfg.cf_concurrency) $('advCfConc').placeholder = cfg.cf_concurrency;
+    if (cfg.api_concurrent) $('advApiConc').placeholder = cfg.api_concurrent;
+    if (cfg.api_chunk) $('advApiChunk').placeholder = cfg.api_chunk;
+    if (data.running) {
+      setStatus('running', '扫描中...');
+      $('btnStart').disabled = true;
+      $('btnStop').disabled = false;
+    }
+  });
+});
+
+socket.on('log', (data) => {
+  addLog(data.step, data.msg);
+  if (data.progress !== undefined) {
+    $('progressBar').style.width = data.progress + '%';
+  }
+
+  // Update step indicators based on step prefix
+  const stepMap = {
+    '1/5': 1, '2/5': 2, '3/5': 3, '4/5': 4, '5/5': 5,
+    'start': null, 'done': null, 'cancel': null, 'error': null,
+  };
+  const stepNum = stepMap[data.step];
+  if (stepNum) {
+    updateStep(stepNum, 'active', data.msg);
+  }
+  if (data.step === 'done') {
+    for (let i = 1; i <= 5; i++) updateStep(i, 'done', '✓ 完成');
+    $('progressBar').style.width = '100%';
+  }
+});
+
+// ── IP file event ──
+socket.on('masscan_file', (data) => {
+  $('btnDownloadMasscan').disabled = false;
+  addLog('📁', `Masscan 完成 | 原始输出: ${data.raw_file} | IP:port: ${data.result_file} (${data.count} 个)`);
+});
+
+socket.on('ip_file', (data) => {
+  $('btnDownloadIps').disabled = false;
+  addLog('📁', `IP 列表已保存: ${data.file} (${data.count.toLocaleString()} 个 IP)`);
+});
+
+socket.on('status', (data) => {
+  if (data.status === 'running') {
+    setStatus('running', '扫描中...');
+    $('btnStart').disabled = true;
+    $('btnStop').disabled = false;
+  } else if (data.status === 'done') {
+    setStatus('done', '完成');
+    $('btnStart').disabled = false;
+    $('btnStop').disabled = true;
+    loadResults();
+    if (data.file) {
+      currentAsnTag = data.asn_tag || '';
+      $('btnDownload').disabled = false;
+    }
+  } else if (data.status === 'error') {
+    setStatus('error', '错误');
+    $('btnStart').disabled = false;
+    $('btnStop').disabled = true;
+    addLog('❌', data.msg || '未知错误');
+  } else if (data.status === 'busy') {
+    showToast('⚠️ ' + (data.msg || '已有任务运行中'));
+  } else if (data.status === 'idle') {
+    setStatus('idle', '就绪');
+    $('btnStart').disabled = false;
+    $('btnStop').disabled = true;
+  }
+});
+
+// ── Load Results ──
+function loadResults() {
+  fetch('/api/results').then(r => r.json()).then(data => {
+    allResults = data || [];
+    renderTable(allResults);
+  });
+}
+
+let allResults = [];
+
+function renderTable(results) {
+  const tbody = $('resultsBody');
+  $('resultCount').textContent = results.length + ' 条';
+  if (results.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div>无匹配结果</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = results.map(r => `
+    <tr>
+      <td class="ip-cell">${esc(r.ip)}</td>
+      <td>${esc(r.port)}</td>
+      <td>${esc(r.tls)}</td>
+      <td class="colo-cell">${esc(r.colo)}</td>
+      <td class="country-cell">${esc(r.country)}</td>
+      <td>${esc(r.region)}</td>
+      <td>${esc(r.latency)}</td>
+      <td>${esc(r.speed)}</td>
+      <td>${esc(r.asn)}</td>
+    </tr>
+  `).join('');
+}
+
+function esc(s) { return (s || '').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function applyFilter() {
+  const q = $('filterInput').value.toLowerCase();
+  if (!q) { renderTable(allResults); return; }
+  const filtered = allResults.filter(r =>
+    r.ip.toLowerCase().includes(q) ||
+    r.colo.toLowerCase().includes(q) ||
+    r.country.toLowerCase().includes(q) ||
+    r.region.toLowerCase().includes(q) ||
+    r.port.includes(q) ||
+    r.asn.includes(q)
+  );
+  renderTable(filtered);
+}
+
+// ── Actions ──
+function startScan() {
+  const asns = $('asnInput').value.trim();
+  if (!asns) { showToast('⚠️ 请输入 ASN 编号'); return; }
+  resetUI();
+  const payload = { asns };
+  // 收集高级选项
+  const ports = $('advPorts').value.trim();
+  if (ports) payload.ports = ports;
+  const rate = $('advRate').value;
+  if (rate) payload.masscan_rate = rate;
+  const cfConc = $('advCfConc').value;
+  if (cfConc) payload.cf_concurrency = cfConc;
+  const apiConc = $('advApiConc').value;
+  if (apiConc) payload.api_concurrent = apiConc;
+  const apiChunk = $('advApiChunk').value;
+  if (apiChunk) payload.api_chunk = apiChunk;
+  socket.emit('start_scan', payload);
+}
+
+function downloadIPs() {
+  window.open('/api/download/ips', '_blank');
+}
+
+function downloadMasscan() {
+  window.open('/api/download/masscan/raw', '_blank');
+  setTimeout(() => window.open('/api/download/masscan/result', '_blank'), 300);
+}
+
+function stopScan() {
+  fetch('/api/cancel', { method: 'POST' }).then(r => r.json()).then(() => {
+    addLog('⏹', '已发送停止信号，正在终止...');
+    setStatus('idle', '已停止');
+    $('btnStart').disabled = false;
+    $('btnStop').disabled = true;
+  });
+}
+
+function downloadCSV() {
+  if (currentAsnTag) {
+    window.open('/api/download/' + currentAsnTag, '_blank');
+  }
+}
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Keyboard shortcut ──
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.activeElement === $('asnInput')) {
+    startScan();
+  }
+});
+
+// ── Initial load ──
+loadResults();
+addLog('🖥', 'ASNIPtest Web UI 就绪 — 输入 ASN 编号开始扫描');
+addLog('💡', '支持多 ASN: AS209242,AS3214 或 AS209242 AS3214');
+</script>
+</body>
+</html>
