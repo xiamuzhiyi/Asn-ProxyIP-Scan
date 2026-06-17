@@ -1,4 +1,4 @@
-# ASNIPtest
+# Asn-ProxyIP-Scan
 
 从 ASN 拉取 IP 段 → 端口扫描 → Cloudflare 反代节点检测 → 输出可用 CF 节点。
 
@@ -47,3 +47,12 @@ CSV 列：IP地址, 端口, TLS, 数据中心, 地区, 城市, 网络延迟, 下
 
 > 下载链接自动检测公网出口 IP（ipify + ip.sb 双 API 备用），支持 NAT/Docker 环境。
 
+## Star History ⭐⭐⭐走起
+
+<a href="https://www.star-history.com/?repos=xiamuzhiyi%2FAsn-ProxyIP-Scan&type=timeline&logscale=&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xiamuzhiyi/Asn-ProxyIP-Scan&type=timeline&theme=dark&logscale&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xiamuzhiyi/Asn-ProxyIP-Scan&type=timeline&logscale&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xiamuzhiyi/Asn-ProxyIP-Scan&type=timeline&logscale&legend=bottom-right" />
+ </picture>
+</a>
