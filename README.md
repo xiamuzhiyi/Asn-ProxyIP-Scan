@@ -2,31 +2,20 @@
 
 从 ASN 拉取 IP 段 → 端口扫描 → Cloudflare 反代节点检测 → 输出可用 CF 节点。
 
-## 一键安装
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e13815332/ASNIPtest/main/install.sh | bash
-```
-
-## 卸载
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/e13815332/ASNIPtest/main/uninstall.sh | bash
-```
-
 ## 使用
-
-### Web UI（推荐 🆕）
 
 一键启动可视化 Web 界面，在浏览器中完成全流程操作：
 
-```bash
-cd ~/ASNIPtest
-pip install flask flask-socketio
-python3 web_server.py
-```
+＊ 安装pathon 环境
+
+＊ 启动web_server.py
+
+<img width="972" height="511" alt="image" src="https://github.com/user-attachments/assets/157cb684-b1d0-4e9c-aaef-95d8745fbb3d" />
 
 浏览器打开 `http://<服务器IP>:8899`，输入 ASN 即可开始扫描。
+
+<img width="1912" height="902" alt="image" src="https://github.com/user-attachments/assets/3228525e-b875-46f4-923d-e0388a3392c4" />
+
 
 特性：
 - 🎛️ 可视化进度（5 步实时跟踪）
@@ -34,31 +23,6 @@ python3 web_server.py
 - 📥 一键下载 CSV
 - ⏹ 随时取消任务
 - 🌐 响应式暗色主题 UI
-
-指定端口：
-```bash
-python3 web_server.py --port 8080
-```
-
-### 命令行
-
-```bash
-cd ~/ASNIPtest
-python3 run.py AS209242
-```
-
-多个 ASN：
-
-```bash
-python3 run.py AS209242,AS3214
-```
-
-## 流程
-
-```
-ASN(命令行) → RIPEStat → CIDR → prips 展开 IP
-    → masscan 端口扫描 → cf-scanner 粗筛 → API 精筛 → CSV
-```
 
 ## 依赖工具
 
@@ -83,14 +47,3 @@ CSV 列：IP地址, 端口, TLS, 数据中心, 地区, 城市, 网络延迟, 下
 
 > 下载链接自动检测公网出口 IP（ipify + ip.sb 双 API 备用），支持 NAT/Docker 环境。
 
-## 硬件自适应
-
-根据 CPU 核数/内存自动调整参数：
-
-| 配置 | masscan | cf并发 | API并发 |
-|------|---------|--------|---------|
-| 2核1G | 2,000 pps | 200* | 8 |
-| 4核2G | 4,000 pps | 400 | 32 |
-| 16核16G | 16,000 pps | 500 | 32 |
-
-> *cf-scanner 并发最低 200，最高 500。
