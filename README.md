@@ -10,8 +10,6 @@
 
 ＊ 启动web_server.py
 
-<img width="972" height="511" alt="image" src="https://github.com/user-attachments/assets/157cb684-b1d0-4e9c-aaef-95d8745fbb3d" />
-
 浏览器打开 `http://<服务器IP>:8899`，输入 ASN 即可开始扫描。
 
 <img width="1912" height="902" alt="image" src="https://github.com/user-attachments/assets/3228525e-b875-46f4-923d-e0388a3392c4" />
